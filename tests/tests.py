@@ -126,6 +126,17 @@ class ProjectTestCase(APITestCase):
         self.assertEqual(self.project.title, 'New Title')
         self.assertEqual(task.code, 'EX-1')
 
+    def test_update_status(self):
+        url = reverse('project-status-update', kwargs={'pk': self.project.id})
+        data = {'status': 'IN_PROGRESS'}
+
+        self.client.force_login(self.creator)
+        resp = self.client.patch(url, data, format='json')
+        self.assertEqual(resp.status_code, 200)
+
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.status.name, 'IN_PROGRESS')
+
 
 class TaskTestCase(APITestCase):
     url = reverse('task-list')
@@ -215,3 +226,23 @@ class TaskTestCase(APITestCase):
                 'email': ''
             },
         })
+
+    def test_update_status(self):
+        task = Task.objects.create(
+            project=self.project,
+            created_by=self.creator,
+            assigned_to=self.assignee,
+            title='Hello World',
+            description='Complete task',
+            status=TaskStatus.DRAFT
+        )
+
+        url = reverse('task-status-update', kwargs={'pk': task.id})
+        data = {'status': 'IN_PROGRESS'}
+
+        self.client.force_login(self.creator)
+        resp = self.client.patch(url, data, format='json')
+        self.assertEqual(resp.status_code, 200)
+
+        task.refresh_from_db()
+        self.assertEqual(task.status.name, 'IN_PROGRESS')

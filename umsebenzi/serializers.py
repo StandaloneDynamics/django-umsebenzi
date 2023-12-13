@@ -7,6 +7,7 @@ from umsebenzi.enums import TaskStatus, ProjectStatus
 
 User = get_user_model()
 
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -16,12 +17,13 @@ class UserSerializer(serializers.ModelSerializer):
 class ProjectSerializer(serializers.ModelSerializer):
     created_by = UserSerializer(read_only=True)
     status = NamedEnumField(ProjectStatus, required=False)
+
     class Meta:
         model = Project
         fields = '__all__'
         read_only_fields = ('created_at', 'modified_at', 'created_by')
 
-    def update(self, instance:Project, validated_data):
+    def update(self, instance: Project, validated_data):
         """
         update the tasks code if the projects code has been updated
         """
@@ -31,6 +33,14 @@ class ProjectSerializer(serializers.ModelSerializer):
                 t.code = t.code.replace(instance.code, validated_data['code'])
                 t.save()
         return super().update(instance, validated_data)
+
+
+class ProjectStatusSerializer(serializers.ModelSerializer):
+    status = NamedEnumField(ProjectStatus, required=True)
+
+    class Meta:
+        model = Project
+        fields = ('status',)
 
 
 class TaskSerializer(serializers.ModelSerializer):
@@ -45,10 +55,9 @@ class TaskSerializer(serializers.ModelSerializer):
         model = Task
         fields = (
             'project_id', 'project', 'title', 'description', 'assigned_to',
-            'assigned_to_id', 'created_by', 'status','code', 'created_at', 'modified_at'
+            'assigned_to_id', 'created_by', 'status', 'code', 'created_at', 'modified_at'
         )
         read_only_fields = ('code', 'created_at', 'modified_at')
-
 
     def create(self, validated_data):
         project = validated_data.pop('project_id')
@@ -70,3 +79,11 @@ class TaskSerializer(serializers.ModelSerializer):
         instance.status = validated_data.get('status', instance.status)
         instance.save()
         return instance
+
+
+class TaskStatusSerializer(serializers.ModelSerializer):
+    status = NamedEnumField(TaskStatus, required=True)
+
+    class Meta:
+        model = Task
+        fields = ('status',)

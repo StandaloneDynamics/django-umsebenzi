@@ -1,12 +1,12 @@
 # Django-Umsebenzi
 
-Umsebenzi, which means work in the Zulu language,  is a set of Django REST apis to manage and keep track of your personal
+Umsebenzi, which means work in the Zulu language, is a set of simple Django REST apis to manage and keep track of your personal
 projects.
 
 It consists of 2 Endpoints:
 
-* Projects - create a new project
-* Tasks - create a task under a project
+* Projects
+* Tasks
 
 # Installation
 ```
@@ -101,3 +101,7 @@ data = {
     }
 }
 ```
+
+# OpenAPI Endpoints
+
+![screenshot of endpints](api_endpoints.png)

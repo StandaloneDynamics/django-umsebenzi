@@ -16,7 +16,7 @@ pip install django-umsebenzi
 # Setup
 
 * Add the app `umsebenzi` to `INSTALLED_APPS`
-* Umsebenzi comes with its own router `DefaultRouter`. To add it to your main router:
+* Umsebenzi uses `DefaultRouter` for its urls. To add it to your main router in your project:
 ```
 from umsebenzi.urls import router as umsebenzi_router 
 
@@ -39,7 +39,6 @@ data = {
     'description': 'Build stuff here',
     'code': 'NP'
 }
-self.client.post(self.url, data, format='json')
 ```
 ### Response
 ```

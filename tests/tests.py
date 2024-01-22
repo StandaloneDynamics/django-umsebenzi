@@ -170,10 +170,11 @@ class TaskTestCase(APITestCase):
             assigned_to=self.assignee,
             title='Hello World',
             description='Complete task',
-            status=TaskStatus.DRAFT
+            status=TaskStatus.DRAFT,
+            code='PR-1'
         )
 
-        url = reverse('task-detail', kwargs={'pk': task.id})
+        url = reverse('task-detail', kwargs={'code': task.code})
         data = {
             'title': task.title,
             'status': TaskStatus.IN_PROGRESS.name,
@@ -234,10 +235,11 @@ class TaskTestCase(APITestCase):
             assigned_to=self.assignee,
             title='Hello World',
             description='Complete task',
-            status=TaskStatus.DRAFT
+            status=TaskStatus.DRAFT,
+            code="PR-1"
         )
 
-        url = reverse('task-status-update', kwargs={'pk': task.id})
+        url = reverse('task-status-update', kwargs={'code': task.code})
         data = {'status': 'IN_PROGRESS'}
 
         self.client.force_login(self.creator)

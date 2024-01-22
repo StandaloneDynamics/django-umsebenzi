@@ -49,7 +49,7 @@ class TaskSerializer(serializers.ModelSerializer):
     project = ProjectSerializer(read_only=True)
     assigned_to = UserSerializer(read_only=True)
     created_by = UserSerializer(read_only=True)
-    status = NamedEnumField(TaskStatus, required=False)
+    status = NamedEnumField(TaskStatus, required=False, default=TaskStatus.DRAFT)
 
     class Meta:
         model = Task

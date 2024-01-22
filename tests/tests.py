@@ -239,7 +239,7 @@ class TaskTestCase(APITestCase):
             code="PR-1"
         )
 
-        url = reverse('task-status-update', kwargs={'code': task.code})
+        url = reverse('task-status', kwargs={'code': task.code})
         data = {'status': 'IN_PROGRESS'}
 
         self.client.force_login(self.creator)

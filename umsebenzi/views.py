@@ -33,6 +33,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
 class TaskViewSet(viewsets.ModelViewSet):
     serializer_class = TaskSerializer
     permission_classes = [IsAuthenticated]
+    lookup_field = 'code'
 
     def get_queryset(self):
         return Task.objects.filter(Q(created_by=self.request.user) | Q(assigned_to=self.request.user))
@@ -44,7 +45,7 @@ class TaskViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['PATCH'], serializer_class=TaskStatusSerializer)
-    def status_update(self, request, pk=None):
+    def status_update(self, request, code=None):
         task = self.get_object()
         serializer = self.get_serializer(task, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)

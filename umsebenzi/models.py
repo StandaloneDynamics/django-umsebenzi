@@ -8,7 +8,7 @@ from umsebenzi.enums import TaskStatus, ProjectStatus
 class Project(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField()
-    code = models.CharField(max_length=10)
+    code = models.CharField(max_length=10, unique=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='projects')
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)

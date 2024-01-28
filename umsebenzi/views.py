@@ -3,10 +3,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
+from django_filters import rest_framework as filters
 
 from umsebenzi.models import Project, Task
 from umsebenzi.serializers import ProjectSerializer, TaskSerializer, ProjectStatusSerializer, TaskStatusSerializer
-
+from umsebenzi.filters import TaskFilter
 
 class ProjectViewSet(viewsets.ModelViewSet):
     serializer_class = ProjectSerializer
@@ -34,6 +35,8 @@ class TaskViewSet(viewsets.ModelViewSet):
     serializer_class = TaskSerializer
     permission_classes = [IsAuthenticated]
     lookup_field = 'code'
+    filter_backends = (filters.DjangoFilterBackend,)
+    filterset_class = TaskFilter
 
     def get_queryset(self):
         return Task.objects.filter(Q(created_by=self.request.user) | Q(assigned_to=self.request.user))

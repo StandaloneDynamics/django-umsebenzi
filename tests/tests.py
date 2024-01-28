@@ -88,6 +88,7 @@ class ProjectTestCase(APITestCase):
             'description': self.project.description,
             'code': self.project.code,
             'created_by': {
+                'id': self.project.created_by.id,
                 'username': 'creator',
                 'email': ''
             },
@@ -187,6 +188,7 @@ class TaskTestCase(APITestCase):
         self.assertEqual(resp.json()['status'], TaskStatus.IN_PROGRESS.name)
 
     def test_create(self):
+        self.maxDiff = None
         data = {
             'assigned_to_id': self.assignee.id,
             'description': 'Write Tests to finish project',
@@ -208,6 +210,7 @@ class TaskTestCase(APITestCase):
                 'created_at': self.project.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
                 'modified_at': self.project.modified_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
                 'created_by': {
+                    'id': self.project.created_by.id,
                     'username': 'creator',
                     'email': ''
                 }
@@ -219,10 +222,12 @@ class TaskTestCase(APITestCase):
             'created_at': task.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
             'modified_at': task.modified_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
             'assigned_to': {
+                'id': task.assigned_to.id,
                 'username': 'assignee',
                 'email': ''
             },
             'created_by': {
+                'id': task.created_by.id,
                 'username': 'creator',
                 'email': ''
             },
@@ -248,3 +253,35 @@ class TaskTestCase(APITestCase):
 
         task.refresh_from_db()
         self.assertEqual(task.status.name, 'IN_PROGRESS')
+
+    def test_filter(self):
+        Project.objects.create(
+            title='Example Project',
+            description='A new description',
+            code='EP',
+            created_by=self.creator
+        )
+        Task.objects.create(
+            project=self.project,
+            created_by=self.creator,
+            assigned_to=self.assignee,
+            title='Hello World',
+            description='Complete task',
+            status=TaskStatus.DRAFT,
+            code="NP-1"
+        )
+
+        self.assertEqual(Project.objects.count(), 2)
+        self.assertEqual(Task.objects.count(), 1)
+
+        url = f'{self.url}?project=EP'
+        resp = self.client.get(url, format='json')
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(resp.json()), 0)
+
+        url = f'{self.url}?project=NP'
+        resp = self.client.get(url, format='json')
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(resp.json()), 1)
+
+

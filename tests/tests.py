@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.contrib.auth.models import User
 
 from umsebenzi.models import Project, Task
-from umsebenzi.enums import TaskStatus, ProjectStatus
+from umsebenzi.enums import TaskStatus
 
 
 class ProjectTestCase(APITestCase):
@@ -48,15 +48,14 @@ class ProjectTestCase(APITestCase):
 
         data = {
             'title': self.project.title,
-            'description': self.project.description,
-            'status': ProjectStatus.IN_PROGRESS.name,
+            'description': 'New description',
             'code': 'EX'
         }
         self.client.force_login(self.creator)
         resp = self.client.put(url, data, format='json')
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.json()['code'], 'EX')
-        self.assertEqual(resp.json()['status'], ProjectStatus.IN_PROGRESS.name)
+        self.assertEqual(resp.json()['description'], 'New description')
 
     def test_delete_created_by(self):
         self.assertEqual(Project.objects.count(), 1)
@@ -94,7 +93,6 @@ class ProjectTestCase(APITestCase):
             },
             'created_at': self.project.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
             'modified_at': self.project.modified_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-            'status': 'DRAFT'
         }])
 
     def test_project_code_update(self):
@@ -114,7 +112,6 @@ class ProjectTestCase(APITestCase):
         data = {
             'title': 'New Title',
             'description': self.project.description,
-            'status': ProjectStatus.IN_PROGRESS.name,
             'code': 'EX'
         }
         self.client.force_login(self.creator)
@@ -126,17 +123,6 @@ class ProjectTestCase(APITestCase):
 
         self.assertEqual(self.project.title, 'New Title')
         self.assertEqual(task.code, 'EX-1')
-
-    def test_update_status(self):
-        url = reverse('project-status-update', kwargs={'pk': self.project.id})
-        data = {'status': 'IN_PROGRESS'}
-
-        self.client.force_login(self.creator)
-        resp = self.client.patch(url, data, format='json')
-        self.assertEqual(resp.status_code, 200)
-
-        self.project.refresh_from_db()
-        self.assertEqual(self.project.status.name, 'IN_PROGRESS')
 
 
 class TaskTestCase(APITestCase):
@@ -206,7 +192,6 @@ class TaskTestCase(APITestCase):
                 'title': 'New Project',
                 'description': 'A new description',
                 'code': 'NP',
-                'status': 'DRAFT',
                 'created_at': self.project.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
                 'modified_at': self.project.modified_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
                 'created_by': {

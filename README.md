@@ -1,7 +1,7 @@
 # Django-Umsebenzi
 
 Umsebenzi, which means work in the Zulu language, is a set of simple Django REST apis to manage and keep track of your personal
-projects.
+projects and tasks.
 
 It consists of 2 Endpoints:
 
@@ -100,6 +100,12 @@ data = {
         'email': ''
     }
 }
+```
+
+### Filtering Tasks
+Tasks can be filtered by using the project code, example url is shown below.
+```
+eg: http://localhost:8000/v1/api/tasks?project=<code>
 ```
 
 # OpenAPI Endpoints

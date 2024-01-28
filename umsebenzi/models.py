@@ -2,7 +2,7 @@ from django.db import models
 from django.conf import settings
 
 from django_enumfield import enum
-from umsebenzi.enums import TaskStatus, ProjectStatus
+from umsebenzi.enums import TaskStatus
 
 
 class Project(models.Model):
@@ -12,7 +12,6 @@ class Project(models.Model):
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='projects')
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
-    status = enum.EnumField(ProjectStatus, default=ProjectStatus.DRAFT)
 
     def __str__(self):
         return f'{self.code} - {self.title}'

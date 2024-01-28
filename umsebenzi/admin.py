@@ -6,7 +6,7 @@ from umsebenzi.forms import TaskForm
 
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
-    list_display = ('title', 'description', 'code', 'status', 'created_by', 'created_at')
+    list_display = ('title', 'description', 'code', 'created_by', 'created_at')
 
 
 @admin.register(Task)

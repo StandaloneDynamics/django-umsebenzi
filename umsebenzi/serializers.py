@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from django_enumfield.contrib.drf import NamedEnumField
 
 from umsebenzi.models import Project, Task
-from umsebenzi.enums import TaskStatus, ProjectStatus
+from umsebenzi.enums import TaskStatus
 
 User = get_user_model()
 
@@ -16,7 +16,6 @@ class UserSerializer(serializers.ModelSerializer):
 
 class ProjectSerializer(serializers.ModelSerializer):
     created_by = UserSerializer(read_only=True)
-    status = NamedEnumField(ProjectStatus, required=False)
 
     class Meta:
         model = Project
@@ -33,14 +32,6 @@ class ProjectSerializer(serializers.ModelSerializer):
                 t.code = t.code.replace(instance.code, validated_data['code'])
                 t.save()
         return super().update(instance, validated_data)
-
-
-class ProjectStatusSerializer(serializers.ModelSerializer):
-    status = NamedEnumField(ProjectStatus, required=True)
-
-    class Meta:
-        model = Project
-        fields = ('status',)
 
 
 class TaskSerializer(serializers.ModelSerializer):

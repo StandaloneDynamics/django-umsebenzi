@@ -6,8 +6,9 @@ from rest_framework.decorators import action
 from django_filters import rest_framework as filters
 
 from umsebenzi.models import Project, Task
-from umsebenzi.serializers import ProjectSerializer, TaskSerializer, ProjectStatusSerializer, TaskStatusSerializer
+from umsebenzi.serializers import ProjectSerializer, TaskSerializer, TaskStatusSerializer
 from umsebenzi.filters import TaskFilter
+
 
 class ProjectViewSet(viewsets.ModelViewSet):
     serializer_class = ProjectSerializer
@@ -21,14 +22,6 @@ class ProjectViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save(created_by=request.user)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-    @action(detail=True, methods=['PATCH'], serializer_class=ProjectStatusSerializer)
-    def status_update(self, request, pk=None):
-        project = self.get_object()
-        serializer = self.get_serializer(project, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class TaskViewSet(viewsets.ModelViewSet):

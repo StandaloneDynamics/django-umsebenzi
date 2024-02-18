@@ -30,6 +30,7 @@ class Task(models.Model):
     status = enum.EnumField(TaskStatus, default=TaskStatus.DRAFT)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='created_tasks')
     assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='assigned_tasks')
+    due_date = models.DateField(null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
 

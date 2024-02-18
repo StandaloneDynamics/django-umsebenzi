@@ -202,6 +202,7 @@ class TaskTestCase(APITestCase):
             },
             'title': 'Write Tests',
             'description': 'Write Tests to finish project',
+            'due_date': None,
             'status': 'DRAFT',
             'code': 'NP-1',
             'created_at': task.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),

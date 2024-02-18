@@ -111,4 +111,4 @@ eg: http://localhost:8000/v1/api/tasks?project=<code>
 
 # OpenAPI Endpoints
 
-![screenshot of endpints](api_endpoints.png)
+![screenshot of endpoints](api_endpoints.png)

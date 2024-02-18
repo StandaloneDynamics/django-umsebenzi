@@ -87,6 +87,7 @@ data = {
     },
     'title': 'Write Tests',
     'description': 'Write Tests to finish project',
+    'due_date': None
     'status': 'DRAFT',
     'code': 'NP-1',
     'created_at': <datetime>,

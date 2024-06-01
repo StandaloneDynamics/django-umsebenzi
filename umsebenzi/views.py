@@ -8,6 +8,7 @@ from django_filters import rest_framework as filters
 from umsebenzi.models import Project, Task
 from umsebenzi.serializers import ProjectSerializer, TaskSerializer, TaskStatusSerializer
 from umsebenzi.filters import TaskFilter
+from umsebenzi.enums import TaskStatus
 
 
 class ProjectViewSet(viewsets.ModelViewSet):
@@ -32,7 +33,9 @@ class TaskViewSet(viewsets.ModelViewSet):
     filterset_class = TaskFilter
 
     def get_queryset(self):
-        return Task.objects.filter(Q(created_by=self.request.user) | Q(assigned_to=self.request.user))
+        return Task.objects.filter(
+            Q(created_by=self.request.user)
+            | Q(assigned_to=self.request.user)).exclude(status=TaskStatus.ARCHIVE)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)

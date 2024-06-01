@@ -270,4 +270,29 @@ class TaskTestCase(APITestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(len(resp.json()), 1)
 
+    def test_exclude_archive(self):
+        Task.objects.create(
+            project=self.project,
+            created_by=self.creator,
+            assigned_to=self.assignee,
+            title='Hello World',
+            description='Complete task',
+            status=TaskStatus.DRAFT,
+            code="NP-1"
+        )
+        Task.objects.create(
+            project=self.project,
+            created_by=self.creator,
+            assigned_to=self.assignee,
+            title='Hello World',
+            description='Complete task',
+            status=TaskStatus.ARCHIVE,
+            code="NP-2"
+        )
+        resp = self.client.get(self.url,format='json')
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(resp.json()), 1)
+
+
+
 

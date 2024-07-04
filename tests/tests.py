@@ -1,10 +1,11 @@
 from rest_framework.test import APITestCase
 from django.urls import reverse
+from .factory import TaskFactory, ProjectFactory
 
 from django.contrib.auth.models import User
 
 from umsebenzi.models import Project, Task
-from umsebenzi.enums import TaskStatus
+from umsebenzi.enums import TaskStatus, Issue
 
 
 class ProjectTestCase(APITestCase):
@@ -129,6 +130,7 @@ class TaskTestCase(APITestCase):
     url = reverse('task-list')
 
     def setUp(self) -> None:
+        self.maxDiff = None
         self.creator = User.objects.create(username='creator', password='password')
         self.assignee = User.objects.create(username='assignee', password='password')
         self.client.force_login(self.creator)
@@ -174,7 +176,6 @@ class TaskTestCase(APITestCase):
         self.assertEqual(resp.json()['status'], TaskStatus.IN_PROGRESS.name)
 
     def test_create(self):
-        self.maxDiff = None
         data = {
             'assigned_to_id': self.assignee.id,
             'description': 'Write Tests to finish project',
@@ -205,6 +206,7 @@ class TaskTestCase(APITestCase):
             'due_date': None,
             'status': 'DRAFT',
             'code': 'NP-1',
+            'issue': 'EPIC',
             'created_at': task.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
             'modified_at': task.modified_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
             'assigned_to': {
@@ -217,6 +219,7 @@ class TaskTestCase(APITestCase):
                 'username': 'creator',
                 'email': ''
             },
+            'subtasks': []
         })
 
     def test_update_status(self):
@@ -238,7 +241,7 @@ class TaskTestCase(APITestCase):
         self.assertEqual(resp.status_code, 200)
 
         task.refresh_from_db()
-        self.assertEqual(task.status.name, 'IN_PROGRESS')
+        self.assertEqual(task.status, TaskStatus.IN_PROGRESS.value)
 
     def test_filter(self):
         Project.objects.create(
@@ -289,10 +292,131 @@ class TaskTestCase(APITestCase):
             status=TaskStatus.ARCHIVE,
             code="NP-2"
         )
-        resp = self.client.get(self.url,format='json')
+        resp = self.client.get(self.url, format='json')
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(len(resp.json()), 1)
 
 
+class SubTasksTestCase(APITestCase):
+    url = reverse('task-list')
 
+    def setUp(self) -> None:
+        self.maxDiff = None
+        self.creator = User.objects.create(username='creator', password='password')
+        self.assignee = User.objects.create(username='assignee', password='password')
+        self.client.force_login(self.creator)
+        self.project = ProjectFactory(created_by=self.creator)
+        self.task = TaskFactory(project=self.project, created_by=self.creator, assigned_to=self.assignee)
 
+    def test_epic_parent(self):
+        data = {
+            'project_id': self.project.id,
+            'assigned_to_id': self.assignee.id,
+            'parent_id': self.task.id,
+            'title': 'First Subtask',
+            'description': 'Do stuff here',
+        }
+        resp = self.client.post(self.url, data, format='json')
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(resp.json(), {'non_field_errors': ['Epic task cannot have parent']})
+
+    def test_subtask_subtask(self):
+        subtask = TaskFactory(
+            project=self.project, issue=Issue.SUBTASK,
+            created_by=self.creator, assigned_to=self.assignee,
+            code='NP-100'
+        )
+        data = {
+            'project_id': self.project.id,
+            'assigned_to_id': self.assignee.id,
+            'parent_id': subtask.id,
+            'title': 'First Subtask',
+            'description': 'Do stuff here',
+            'issue': 'SUBTASK',
+        }
+        resp = self.client.post(self.url, data, format='json')
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(resp.json(), {'non_field_errors': ['Subtask cannot have subtask parent']})
+
+    def test_subtask(self):
+        data = {
+            'project_id': self.project.id,
+            'assigned_to_id': self.assignee.id,
+            'parent_id': self.task.id,
+            'title': 'First Subtask',
+            'description': 'Do stuff here',
+            'issue': 'SUBTASK',
+            'parent': self.task.id
+        }
+        resp = self.client.post(self.url, data, format='json')
+        self.assertEqual(resp.status_code, 201)
+        task = Task.objects.latest('id')
+        self.assertEqual(resp.json(), {
+            'title': 'First Subtask',
+            'description': 'Do stuff here',
+            'due_date': None,
+            'status': 'DRAFT',
+            'issue': 'SUBTASK',
+            'code': 'NP-2',
+            'created_at': task.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+            'modified_at': task.modified_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+            'assigned_to': {
+                'id': task.assigned_to.id,
+                'username': 'assignee',
+                'email': ''
+            },
+            'created_by': {
+                'id': task.created_by.id,
+                'username': 'creator',
+                'email': ''
+            },
+            'project': {
+                'code': 'NP',
+                'created_at': self.project.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+                'modified_at': self.project.modified_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+                'created_by': {'email': '', 'id': 1, 'username': 'creator'},
+                'description': 'A new description',
+                'id': 1,
+                'title': 'New Project'
+            },
+            'subtasks': None
+        })
+
+    def test_subtask_list(self):
+        subtask = TaskFactory(
+            project=self.project, issue=Issue.SUBTASK,
+            created_by=self.creator, assigned_to=self.assignee,
+            parent=self.task, code='NP-100'
+        )
+        resp = self.client.get(self.url, format='json')
+        self.assertEqual(resp.json(), [
+            {
+                'assigned_to': {'email': '', 'id': 2, 'username': 'assignee'},
+                'code': 'NP-1',
+                'created_at': self.task.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+                'created_by': {'email': '', 'id': 1, 'username': 'creator'},
+                'description': 'Complete task',
+                'due_date': None,
+                'issue': 'EPIC',
+                'modified_at': self.task.modified_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+                'project': {'code': 'NP',
+                            'created_at': self.project.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+                            'created_by': {'email': '', 'id': 1, 'username': 'creator'},
+                            'description': 'A new description',
+                            'id': 1,
+                            'modified_at': self.project.modified_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+                            'title': 'New Project'},
+                'status': 'DRAFT',
+                'subtasks': [{'assigned_to': {'email': '', 'id': 2, 'username': 'assignee'},
+                              'code': 'NP-100',
+                              'created_at': subtask.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+                              'created_by': {'email': '', 'id': 1, 'username': 'creator'},
+                              'description': 'Complete task',
+                              'due_date': None,
+                              'issue': 'SUBTASK',
+                              'modified_at': subtask.modified_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+                              'parent': 1,
+                              'status': 'DRAFT',
+                              'title': 'First Task'}],
+                'title': 'First Task'}
+        ])

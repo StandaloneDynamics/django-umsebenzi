@@ -27,87 +27,9 @@ Once the urls are connected you will be to view docs if you have the swagger too
 There are some examples below to see some of the data that can be created
 
 
-
-# Example Request/Response
-
-## Project API
-### Request
-
-```
-data = {
-    'title': 'New Project',
-    'description': 'Build stuff here',
-    'code': 'NP'
-}
-```
-### Response
-```
-[{
-    'id': <project.id>,
-    'title': 'New Project,
-    'description': 'Build stuff here,
-    'code': NP,
-    'created_by': {
-        'username': 'creator',
-        'email': ''
-    },
-    'created_at': <datetime>,
-    'modified_at': <datetime>,
-    'status': 'DRAFT'
-}]
-```
-
-
-## Task API
-### Request
-```
-data = {
-    'project_id': <project.id>,
-    'title': 'Write Tests',
-    'description': 'Write Tests to finish project',
-    'assigned_to_id': <user.id>,
-}
-```
-
-### Response
-```
-{
-    'project': {
-        'id': <project.id>,
-        'title': 'New Project',
-        'description': 'Build Stuff here',
-        'code': 'NP',
-        'status': 'DRAFT',
-        'created_at': <datetime>,
-        'modified_at': <datetime>,
-        'created_by': {
-            'username': 'creator',
-            'email': ''
-        }
-    },
-    'title': 'Write Tests',
-    'description': 'Write Tests to finish project',
-    'due_date': None
-    'status': 'DRAFT',
-    'code': 'NP-1',
-    'created_at': <datetime>,
-    'modified_at': <datetime>,
-    'assigned_to': {
-        'username': 'assignee',
-        'email': ''
-    },
-    'created_by': {
-        'username': 'creator',
-        'email': ''
-    }
-}
-```
-
-### Filtering Tasks
-Tasks can be filtered by using the project code, example url is shown below.
-```
-eg: http://localhost:8000/v1/api/tasks?project=<code>
-```
+# Docs
+* [Project Api Example](docs/project.md)
+* [Tasks Api Example](docs/task.md)
 
 # OpenAPI Endpoints
 

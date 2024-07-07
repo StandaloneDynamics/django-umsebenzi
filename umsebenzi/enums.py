@@ -20,3 +20,8 @@ class TaskStatus(enum.Enum):
         COMPLETE: gettext_lazy('Complete'),
         ARCHIVE: gettext_lazy('Archive')
     }
+
+
+class Issue(enum.Enum):
+    EPIC = 1
+    SUBTASK = 2

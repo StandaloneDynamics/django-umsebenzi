@@ -15,4 +15,6 @@ class TaskAdmin(admin.ModelAdmin):
         'project', 'code', 'title', 'description', 'status',
         'created_by', 'assigned_to', 'created_at'
     )
+    list_filter = ['project']
+
     form = TaskForm

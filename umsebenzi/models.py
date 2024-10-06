@@ -31,8 +31,8 @@ class Task(models.Model):
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='created_tasks')
     assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='assigned_tasks')
     issue = enum.EnumField(Issue, default=Issue.EPIC)
-    parent = models.ForeignKey('self', null=True, on_delete=models.CASCADE)
-    due_date = models.DateField(null=True)
+    parent = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE)
+    due_date = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
 

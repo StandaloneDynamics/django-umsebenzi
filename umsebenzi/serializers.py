@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from django_enumfield.contrib.drf import NamedEnumField
 from umsebenzi.models import Project, Task
 from umsebenzi.enums import TaskStatus, Issue
+from umsebenzi.latest import get_task_code
 
 User = get_user_model()
 
@@ -88,7 +89,7 @@ class TaskSerializer(serializers.ModelSerializer):
         project = validated_data.pop('project_id')
         assigned_to = validated_data.pop('assigned_to_id')
         parent = validated_data.pop('parent_id', None)
-        count = Task.objects.filter(project=project).count() + 1
+        count = get_task_code(project)
         code = f'{project.code}-{count}'
         return Task.objects.create(
             code=code,

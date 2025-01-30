@@ -407,16 +407,13 @@ class SubTasksTestCase(APITestCase):
                             'modified_at': self.project.modified_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
                             'title': 'New Project'},
                 'status': 'DRAFT',
-                'subtasks': [{'assigned_to': {'email': '', 'id': 2, 'username': 'assignee'},
-                              'code': 'NP-100',
-                              'created_at': subtask.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-                              'created_by': {'email': '', 'id': 1, 'username': 'creator'},
-                              'description': 'Complete task',
-                              'due_date': None,
-                              'issue': 'SUBTASK',
-                              'modified_at': subtask.modified_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-                              'parent': 1,
-                              'status': 'DRAFT',
-                              'title': 'First Task'}],
+                'subtasks': [
+                    {
+                        'code': 'NP-100',
+                        'created_at': subtask.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+                        'status': 'DRAFT',
+                        'title': 'First Task',
+                        'url': 'http://testserver/umsebenzi/tasks/NP-100'
+                    }],
                 'title': 'First Task'}
         ])

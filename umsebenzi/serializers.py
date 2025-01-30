@@ -36,17 +36,17 @@ class ProjectSerializer(serializers.ModelSerializer):
 
 
 class SubTaskSerializer(serializers.ModelSerializer):
-    assigned_to = UserSerializer(read_only=True)
-    created_by = UserSerializer(read_only=True)
+    url = serializers.HyperlinkedIdentityField(
+        read_only=True,
+        lookup_field='code',
+        view_name='task-detail'
+    )
     status = NamedEnumField(TaskStatus, required=False, default=TaskStatus.DRAFT)
-    issue = NamedEnumField(Issue, required=False, default=Issue.EPIC)
 
     class Meta:
         model = Task
         fields = (
-            'title', 'description', 'assigned_to',
-            'created_by', 'status', 'code', 'due_date',
-            'created_at', 'modified_at', 'parent', 'issue'
+            'title', 'code', 'status', 'url', 'created_at'
         )
 
 
@@ -70,10 +70,10 @@ class TaskSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ('code', 'created_at', 'modified_at')
 
-    def get_subtasks(self, obj: Task):
+    def get_subtasks(self, obj: Task) -> List[Task]:
         if obj.issue is Issue.EPIC:
             sub = Task.objects.filter(parent=obj.id)
-            return SubTaskSerializer(sub, many=True).data
+            return SubTaskSerializer(sub, context=self.context, many=True).data
         return None
 
     def validate(self, attrs):

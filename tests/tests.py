@@ -379,7 +379,7 @@ class SubTasksTestCase(APITestCase):
                 'id': 1,
                 'title': 'New Project'
             },
-            'subtasks': None
+            'subtasks': []
         })
 
     def test_subtask_list(self):

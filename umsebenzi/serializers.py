@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_field
 from django.contrib.auth import get_user_model
 
 from django_enumfield.contrib.drf import NamedEnumField
@@ -70,11 +71,12 @@ class TaskSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ('code', 'created_at', 'modified_at')
 
-    def get_subtasks(self, obj: Task) -> List[Task]:
+    @extend_schema_field(SubTaskSerializer(many=True))
+    def get_subtasks(self, obj: Task):
         if obj.issue is Issue.EPIC:
             sub = Task.objects.filter(parent=obj.id)
             return SubTaskSerializer(sub, context=self.context, many=True).data
-        return None
+        return []
 
     def validate(self, attrs):
         issue = attrs.get('issue')

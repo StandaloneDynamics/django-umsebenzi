@@ -35,9 +35,18 @@ class TaskViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return Task.objects.filter(
             Q(created_by=self.request.user)
-            | Q(assigned_to=self.request.user),
-            issue=Issue.EPIC
+            | Q(assigned_to=self.request.user)
         ).exclude(status=TaskStatus.ARCHIVE)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset().filter(issue=Issue.EPIC)
+        queryset = self.filter_queryset(queryset)
+        serializer = self.get_serializer(
+            queryset,
+            context={'request': request},
+            many=True
+        )
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)

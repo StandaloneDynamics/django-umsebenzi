@@ -56,6 +56,9 @@ class TaskViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['PATCH'], serializer_class=TaskStatusSerializer)
     def status(self, request, code=None):
+        """
+        Update the task status
+        """
         task = self.get_object()
         serializer = self.get_serializer(task, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)

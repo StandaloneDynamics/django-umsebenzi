@@ -408,3 +408,8 @@ class SubTasksTestCase(APITestCase):
                     }],
                 'title': 'First Task'}
         ])
+
+
+
+class AdminFormTestCase(APITestCase):
+    pass

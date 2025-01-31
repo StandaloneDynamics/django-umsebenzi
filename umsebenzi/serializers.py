@@ -16,6 +16,17 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ('id', 'username', 'email')
 
 
+class MinialProjectSerializer(serializers.ModelSerializer):
+    url = serializers.HyperlinkedIdentityField(
+        lookup_field='pk',
+        view_name='project-detail'
+    )
+
+    class Meta:
+        model = Project
+        fields = ('title', 'code', 'created_at', 'url')
+
+
 class ProjectSerializer(serializers.ModelSerializer):
     created_by = UserSerializer(read_only=True)
 
@@ -55,7 +66,7 @@ class TaskSerializer(serializers.ModelSerializer):
     project_id = serializers.PrimaryKeyRelatedField(write_only=True, queryset=Project.objects.all())
     assigned_to_id = serializers.PrimaryKeyRelatedField(write_only=True, queryset=User.objects.all())
     parent_id = serializers.PrimaryKeyRelatedField(write_only=True, required=False, queryset=Task.objects.all())
-    project = ProjectSerializer(read_only=True)
+    project = MinialProjectSerializer(read_only=True)
     assigned_to = UserSerializer(read_only=True)
     created_by = UserSerializer(read_only=True)
     status = NamedEnumField(TaskStatus, required=False, default=TaskStatus.DRAFT)

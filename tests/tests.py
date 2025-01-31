@@ -128,6 +128,7 @@ class ProjectTestCase(APITestCase):
 
 class TaskTestCase(APITestCase):
     url = reverse('task-list')
+    test_server = 'http://testserver'
 
     def setUp(self) -> None:
         self.maxDiff = None
@@ -189,17 +190,10 @@ class TaskTestCase(APITestCase):
         task = Task.objects.latest('id')
         self.assertEqual(resp.json(), {
             'project': {
-                'id': 1,
                 'title': 'New Project',
-                'description': 'A new description',
                 'code': 'NP',
                 'created_at': self.project.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-                'modified_at': self.project.modified_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-                'created_by': {
-                    'id': self.project.created_by.id,
-                    'username': 'creator',
-                    'email': ''
-                }
+                'url': f"{self.test_server}{reverse('project-detail', kwargs={'pk': self.project.id})}"
             },
             'title': 'Write Tests',
             'description': 'Write Tests to finish project',
@@ -299,6 +293,7 @@ class TaskTestCase(APITestCase):
 
 class SubTasksTestCase(APITestCase):
     url = reverse('task-list')
+    test_server = 'http://testserver'
 
     def setUp(self) -> None:
         self.maxDiff = None
@@ -373,11 +368,8 @@ class SubTasksTestCase(APITestCase):
             'project': {
                 'code': 'NP',
                 'created_at': self.project.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-                'modified_at': self.project.modified_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-                'created_by': {'email': '', 'id': 1, 'username': 'creator'},
-                'description': 'A new description',
-                'id': 1,
-                'title': 'New Project'
+                'title': 'New Project',
+                'url': f'{self.test_server}{reverse("project-detail", kwargs={"pk": self.project.id})}'
             },
             'subtasks': []
         })
@@ -399,13 +391,12 @@ class SubTasksTestCase(APITestCase):
                 'due_date': None,
                 'issue': 'EPIC',
                 'modified_at': self.task.modified_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-                'project': {'code': 'NP',
-                            'created_at': self.project.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-                            'created_by': {'email': '', 'id': 1, 'username': 'creator'},
-                            'description': 'A new description',
-                            'id': 1,
-                            'modified_at': self.project.modified_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-                            'title': 'New Project'},
+                'project': {
+                    'code': 'NP',
+                    'created_at': self.project.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+                    'title': 'New Project',
+                    'url': f"{self.test_server}{reverse('project-detail', kwargs={'pk': self.project.id})}"
+                },
                 'status': 'DRAFT',
                 'subtasks': [
                     {
@@ -413,7 +404,7 @@ class SubTasksTestCase(APITestCase):
                         'created_at': subtask.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
                         'status': 'DRAFT',
                         'title': 'First Task',
-                        'url': 'http://testserver/umsebenzi/tasks/NP-100'
+                        'url': f"{self.test_server}{reverse('task-detail', kwargs={'code': subtask.code})}"
                     }],
                 'title': 'First Task'}
         ])

@@ -12,7 +12,7 @@ class ProjectAdmin(admin.ModelAdmin):
 @admin.register(Task)
 class TaskAdmin(admin.ModelAdmin):
     list_display = (
-        'project', 'code', 'title', 'description', 'status',
+        'project', 'code', 'title', 'description', 'status', 'issue',
         'created_by', 'assigned_to', 'created_at'
     )
     list_filter = ['project']

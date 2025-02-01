@@ -6,6 +6,7 @@ from django.contrib.auth.models import User
 
 from umsebenzi.models import Project, Task
 from umsebenzi.enums import TaskStatus, Issue
+from umsebenzi.forms import TaskForm
 
 
 class ProjectTestCase(APITestCase):
@@ -412,4 +413,69 @@ class SubTasksTestCase(APITestCase):
 
 
 class AdminFormTestCase(APITestCase):
-    pass
+    def setUp(self) -> None:
+        self.user = User.objects.create(username='creator', password='password')
+        self.project_1 = ProjectFactory(code='EX', created_by=self.user)
+        self.project_2 = ProjectFactory(code='NP', created_by=self.user)
+        self.task_epic = TaskFactory(
+            project=self.project_1,
+            created_by=self.user,
+            assigned_to=self.user
+        )
+        self.task_subtask = TaskFactory(
+            project=self.project_1,
+            created_by=self.user,
+            assigned_to=self.user,
+            issue=Issue.SUBTASK,
+            code="NP-100",
+        )
+        self.task_project_2 = TaskFactory(
+            project=self.project_2,
+            created_by=self.user,
+            assigned_to=self.user,
+            issue=Issue.EPIC,
+            code="NP-200",
+        )
+
+    def test_epic_cannot_have_parent(self):
+        form = TaskForm(data={
+            'project': self.project_1.id,
+            'title': 'Example Task',
+            'description': "stuff here",
+            'status': TaskStatus.DRAFT.value,
+            'created_by': self.user.id,
+            'assigned_to': self.user.id,
+            'issue': Issue.EPIC.value,
+            'parent': self.task_epic.id
+        })
+        # breakpoint()
+        self.assertFalse(form.is_valid())
+        self.assertEqual(form.errors['__all__'], ['Epic task cannot have parent'])
+
+    def test_subtask_parent_cannot_be_subtask(self):
+        form = TaskForm(data={
+            'project': self.project_1.id,
+            'code': 'SUBTASK-2',
+            'title': 'Subtask',
+            'description': 'This is a subtask.',
+            'status': TaskStatus.DRAFT.value,
+            'issue': Issue.SUBTASK.value,
+            'parent': self.task_subtask.id
+        })
+        self.assertFalse(form.is_valid())
+        self.assertEqual(form.errors['__all__'], ['Subtask parent cannot be subtask'])
+
+    def test_subtask_parent_must_belong_to_same_project(self):
+        form = TaskForm(data={
+            'project': self.project_1.id,
+            'code': 'SUBTASK-2',
+            'title': 'Subtask',
+            'description': 'This is a subtask.',
+            'status': TaskStatus.DRAFT.value,
+            'issue': Issue.SUBTASK.value,
+            'parent': self.task_project_2.id
+        })
+        self.assertFalse(form.is_valid())
+        self.assertEqual(form.errors['__all__'], ["Subtask parent(epic) must belong to same project"])
+
+

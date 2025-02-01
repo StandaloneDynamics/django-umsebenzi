@@ -25,3 +25,8 @@ class TaskStatus(enum.Enum):
 class Issue(enum.Enum):
     EPIC = 1
     SUBTASK = 2
+
+    __labels__ = {
+        EPIC: gettext_lazy('Epic'),
+        SUBTASK: gettext_lazy('Subtask')
+    }

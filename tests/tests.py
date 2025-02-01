@@ -6,6 +6,7 @@ from django.contrib.auth.models import User
 
 from umsebenzi.models import Project, Task
 from umsebenzi.enums import TaskStatus, Issue
+from umsebenzi.forms import TaskForm
 
 
 class ProjectTestCase(APITestCase):
@@ -128,6 +129,7 @@ class ProjectTestCase(APITestCase):
 
 class TaskTestCase(APITestCase):
     url = reverse('task-list')
+    test_server = 'http://testserver'
 
     def setUp(self) -> None:
         self.maxDiff = None
@@ -189,17 +191,10 @@ class TaskTestCase(APITestCase):
         task = Task.objects.latest('id')
         self.assertEqual(resp.json(), {
             'project': {
-                'id': 1,
                 'title': 'New Project',
-                'description': 'A new description',
                 'code': 'NP',
                 'created_at': self.project.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-                'modified_at': self.project.modified_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-                'created_by': {
-                    'id': self.project.created_by.id,
-                    'username': 'creator',
-                    'email': ''
-                }
+                'url': f"{self.test_server}{reverse('project-detail', kwargs={'pk': self.project.id})}"
             },
             'title': 'Write Tests',
             'description': 'Write Tests to finish project',
@@ -299,6 +294,7 @@ class TaskTestCase(APITestCase):
 
 class SubTasksTestCase(APITestCase):
     url = reverse('task-list')
+    test_server = 'http://testserver'
 
     def setUp(self) -> None:
         self.maxDiff = None
@@ -373,13 +369,10 @@ class SubTasksTestCase(APITestCase):
             'project': {
                 'code': 'NP',
                 'created_at': self.project.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-                'modified_at': self.project.modified_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-                'created_by': {'email': '', 'id': 1, 'username': 'creator'},
-                'description': 'A new description',
-                'id': 1,
-                'title': 'New Project'
+                'title': 'New Project',
+                'url': f'{self.test_server}{reverse("project-detail", kwargs={"pk": self.project.id})}'
             },
-            'subtasks': None
+            'subtasks': []
         })
 
     def test_subtask_list(self):
@@ -399,24 +392,90 @@ class SubTasksTestCase(APITestCase):
                 'due_date': None,
                 'issue': 'EPIC',
                 'modified_at': self.task.modified_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-                'project': {'code': 'NP',
-                            'created_at': self.project.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-                            'created_by': {'email': '', 'id': 1, 'username': 'creator'},
-                            'description': 'A new description',
-                            'id': 1,
-                            'modified_at': self.project.modified_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-                            'title': 'New Project'},
+                'project': {
+                    'code': 'NP',
+                    'created_at': self.project.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+                    'title': 'New Project',
+                    'url': f"{self.test_server}{reverse('project-detail', kwargs={'pk': self.project.id})}"
+                },
                 'status': 'DRAFT',
-                'subtasks': [{'assigned_to': {'email': '', 'id': 2, 'username': 'assignee'},
-                              'code': 'NP-100',
-                              'created_at': subtask.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-                              'created_by': {'email': '', 'id': 1, 'username': 'creator'},
-                              'description': 'Complete task',
-                              'due_date': None,
-                              'issue': 'SUBTASK',
-                              'modified_at': subtask.modified_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-                              'parent': 1,
-                              'status': 'DRAFT',
-                              'title': 'First Task'}],
+                'subtasks': [
+                    {
+                        'code': 'NP-100',
+                        'created_at': subtask.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+                        'status': 'DRAFT',
+                        'title': 'First Task',
+                        'url': f"{self.test_server}{reverse('task-detail', kwargs={'code': subtask.code})}"
+                    }],
                 'title': 'First Task'}
         ])
+
+
+
+class AdminFormTestCase(APITestCase):
+    def setUp(self) -> None:
+        self.user = User.objects.create(username='creator', password='password')
+        self.project_1 = ProjectFactory(code='EX', created_by=self.user)
+        self.project_2 = ProjectFactory(code='NP', created_by=self.user)
+        self.task_epic = TaskFactory(
+            project=self.project_1,
+            created_by=self.user,
+            assigned_to=self.user
+        )
+        self.task_subtask = TaskFactory(
+            project=self.project_1,
+            created_by=self.user,
+            assigned_to=self.user,
+            issue=Issue.SUBTASK,
+            code="NP-100",
+        )
+        self.task_project_2 = TaskFactory(
+            project=self.project_2,
+            created_by=self.user,
+            assigned_to=self.user,
+            issue=Issue.EPIC,
+            code="NP-200",
+        )
+
+    def test_epic_cannot_have_parent(self):
+        form = TaskForm(data={
+            'project': self.project_1.id,
+            'title': 'Example Task',
+            'description': "stuff here",
+            'status': TaskStatus.DRAFT.value,
+            'created_by': self.user.id,
+            'assigned_to': self.user.id,
+            'issue': Issue.EPIC.value,
+            'parent': self.task_epic.id
+        })
+        # breakpoint()
+        self.assertFalse(form.is_valid())
+        self.assertEqual(form.errors['__all__'], ['Epic task cannot have parent'])
+
+    def test_subtask_parent_cannot_be_subtask(self):
+        form = TaskForm(data={
+            'project': self.project_1.id,
+            'code': 'SUBTASK-2',
+            'title': 'Subtask',
+            'description': 'This is a subtask.',
+            'status': TaskStatus.DRAFT.value,
+            'issue': Issue.SUBTASK.value,
+            'parent': self.task_subtask.id
+        })
+        self.assertFalse(form.is_valid())
+        self.assertEqual(form.errors['__all__'], ['Subtask parent cannot be subtask'])
+
+    def test_subtask_parent_must_belong_to_same_project(self):
+        form = TaskForm(data={
+            'project': self.project_1.id,
+            'code': 'SUBTASK-2',
+            'title': 'Subtask',
+            'description': 'This is a subtask.',
+            'status': TaskStatus.DRAFT.value,
+            'issue': Issue.SUBTASK.value,
+            'parent': self.task_project_2.id
+        })
+        self.assertFalse(form.is_valid())
+        self.assertEqual(form.errors['__all__'], ["Subtask parent(epic) must belong to same project"])
+
+

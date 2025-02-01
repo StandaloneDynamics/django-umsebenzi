@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_field
 from django.contrib.auth import get_user_model
 
 from django_enumfield.contrib.drf import NamedEnumField
@@ -13,6 +14,17 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('id', 'username', 'email')
+
+
+class MinialProjectSerializer(serializers.ModelSerializer):
+    url = serializers.HyperlinkedIdentityField(
+        lookup_field='pk',
+        view_name='project-detail'
+    )
+
+    class Meta:
+        model = Project
+        fields = ('title', 'code', 'created_at', 'url')
 
 
 class ProjectSerializer(serializers.ModelSerializer):
@@ -36,17 +48,17 @@ class ProjectSerializer(serializers.ModelSerializer):
 
 
 class SubTaskSerializer(serializers.ModelSerializer):
-    assigned_to = UserSerializer(read_only=True)
-    created_by = UserSerializer(read_only=True)
+    url = serializers.HyperlinkedIdentityField(
+        read_only=True,
+        lookup_field='code',
+        view_name='task-detail'
+    )
     status = NamedEnumField(TaskStatus, required=False, default=TaskStatus.DRAFT)
-    issue = NamedEnumField(Issue, required=False, default=Issue.EPIC)
 
     class Meta:
         model = Task
         fields = (
-            'title', 'description', 'assigned_to',
-            'created_by', 'status', 'code', 'due_date',
-            'created_at', 'modified_at', 'parent', 'issue'
+            'title', 'code', 'status', 'url', 'created_at'
         )
 
 
@@ -54,7 +66,7 @@ class TaskSerializer(serializers.ModelSerializer):
     project_id = serializers.PrimaryKeyRelatedField(write_only=True, queryset=Project.objects.all())
     assigned_to_id = serializers.PrimaryKeyRelatedField(write_only=True, queryset=User.objects.all())
     parent_id = serializers.PrimaryKeyRelatedField(write_only=True, required=False, queryset=Task.objects.all())
-    project = ProjectSerializer(read_only=True)
+    project = MinialProjectSerializer(read_only=True)
     assigned_to = UserSerializer(read_only=True)
     created_by = UserSerializer(read_only=True)
     status = NamedEnumField(TaskStatus, required=False, default=TaskStatus.DRAFT)
@@ -70,11 +82,12 @@ class TaskSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ('code', 'created_at', 'modified_at')
 
+    @extend_schema_field(SubTaskSerializer(many=True))
     def get_subtasks(self, obj: Task):
         if obj.issue is Issue.EPIC:
             sub = Task.objects.filter(parent=obj.id)
-            return SubTaskSerializer(sub, many=True).data
-        return None
+            return SubTaskSerializer(sub, context=self.context, many=True).data
+        return []
 
     def validate(self, attrs):
         issue = attrs.get('issue')

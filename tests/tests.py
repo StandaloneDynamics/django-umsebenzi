@@ -190,6 +190,7 @@ class TaskTestCase(APITestCase):
         self.assertEqual(Task.objects.count(), 1)
         task = Task.objects.latest('id')
         self.assertEqual(resp.json(), {
+            'id': task.id,
             'project': {
                 'title': 'New Project',
                 'code': 'NP',
@@ -348,6 +349,7 @@ class SubTasksTestCase(APITestCase):
         self.assertEqual(resp.status_code, 201)
         task = Task.objects.latest('id')
         self.assertEqual(resp.json(), {
+            'id': task.id,
             'title': 'First Subtask',
             'description': 'Do stuff here',
             'due_date': None,
@@ -384,6 +386,7 @@ class SubTasksTestCase(APITestCase):
         resp = self.client.get(self.url, format='json')
         self.assertEqual(resp.json(), [
             {
+                'id': self.task.id,
                 'assigned_to': {'email': '', 'id': 2, 'username': 'assignee'},
                 'code': 'NP-1',
                 'created_at': self.task.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),

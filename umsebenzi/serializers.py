@@ -121,11 +121,3 @@ class TaskSerializer(serializers.ModelSerializer):
         instance.status = validated_data.get('status', instance.status)
         instance.save()
         return instance
-
-
-class TaskStatusSerializer(serializers.ModelSerializer):
-    status = NamedEnumField(TaskStatus, required=True)
-
-    class Meta:
-        model = Task
-        fields = ('status',)

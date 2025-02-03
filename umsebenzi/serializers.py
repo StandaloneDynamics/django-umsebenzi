@@ -92,9 +92,8 @@ class TaskSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         issue = attrs.get('issue')
         parent = attrs.get('parent_id')
-        # breakpoint()
         if issue == Issue.EPIC and parent:
-            raise serializers.ValidationError('Epic task cannot have parent')
+            raise serializers.ValidationError({'issue': 'Epic task cannot have parent'})
         if parent and parent.issue is Issue.SUBTASK and issue == Issue.SUBTASK:
             raise serializers.ValidationError('Subtask cannot have subtask parent')
         if issue == Issue.SUBTASK and not parent:
@@ -116,9 +115,16 @@ class TaskSerializer(serializers.ModelSerializer):
         )
 
     def update(self, instance: Task, validated_data):
+        if Task.objects.filter(parent=instance).exists():
+            raise serializers.ValidationError({'issue': ['Subtask cannot have subtasks']})
+
+        issue = validated_data.get('issue')
+        if issue == Issue.EPIC:
+            instance.parent = None
+        else:
+            instance.parent = validated_data.get('parent_id', instance.parent)
         instance.project = validated_data.get('project_id', instance.project)
         instance.assigned_to = validated_data.get('assigned_to_id', instance.assigned_to)
-        instance.parent = validated_data.get('parent_id', instance.parent)
         instance.title = validated_data.get('title', instance.title)
         instance.description = validated_data.get('description', instance.description)
         instance.status = validated_data.get('status', instance.status)

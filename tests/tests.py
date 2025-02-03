@@ -288,6 +288,27 @@ class TaskTestCase(APITestCase):
         self.assertEqual(resp.status_code, 400)
         self.assertEqual(resp.json(), {'issue': ['Subtask needs a parent']})
 
+    def test_epic_to_subtask(self):
+        """
+        Block moving epic to subtask, if epic has subtasks
+        """
+        parent = TaskFactory(project=self.project, created_by=self.creator, code='NP-3')
+        epic_task = TaskFactory(project=self.project, created_by=self.creator)
+        TaskFactory(project=self.project, issue=Issue.SUBTASK, parent=epic_task, code='NP-2', created_by=self.creator)
+
+        data = {
+            'project_id': epic_task.project.id,
+            'assigned_to_id': epic_task.assigned_to.id,
+            'title': epic_task.title,
+            'description': epic_task.description,
+            'issue': Issue.SUBTASK.name,
+            'parent_id': parent.id
+        }
+        url = reverse('task-detail', kwargs={'code': epic_task.code})
+        resp = self.client.put(url, data, format='json')
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(resp.json(), {'issue': ['Subtask cannot have subtasks']})
+
 
 class SubTasksTestCase(APITestCase):
     url = reverse('task-list')
@@ -311,7 +332,7 @@ class SubTasksTestCase(APITestCase):
         }
         resp = self.client.post(self.url, data, format='json')
         self.assertEqual(resp.status_code, 400)
-        self.assertEqual(resp.json(), {'non_field_errors': ['Epic task cannot have parent']})
+        self.assertEqual(resp.json(), {'issue': ['Epic task cannot have parent']})
 
     def test_subtask_subtask(self):
         subtask = TaskFactory(
@@ -436,10 +457,6 @@ class SubTasksTestCase(APITestCase):
         self.assertEqual(resp.status_code, 200)
         subtask.refresh_from_db()
         self.assertEqual(subtask.parent, None)
-
-
-
-
 
 
 class AdminFormTestCase(APITestCase):

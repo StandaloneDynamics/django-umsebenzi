@@ -192,6 +192,7 @@ class TaskTestCase(APITestCase):
         self.assertEqual(resp.json(), {
             'id': task.id,
             'project': {
+                'id': task.project.id,
                 'title': 'New Project',
                 'code': 'NP',
                 'created_at': self.project.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
@@ -215,7 +216,8 @@ class TaskTestCase(APITestCase):
                 'username': 'creator',
                 'email': ''
             },
-            'subtasks': []
+            'subtasks': [],
+            'parent': None
         })
 
     def test_filter(self):
@@ -271,6 +273,21 @@ class TaskTestCase(APITestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(len(resp.json()), 1)
 
+    def test_update_task_issue(self):
+        task = TaskFactory(project=self.project, created_by=self.creator, assigned_to=self.assignee)
+        self.assertEqual(task.issue, Issue.EPIC)
+        data = {
+            'project_id': task.project.id,
+            'assigned_to_id': task.assigned_to.id,
+            'title': task.title,
+            'description': task.description,
+            'issue': Issue.SUBTASK.name,
+        }
+        url = reverse('task-detail', kwargs={'code': task.code})
+        resp = self.client.put(url, data, format='json')
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(resp.json(), {'issue': ['Subtask needs a parent']})
+
 
 class SubTasksTestCase(APITestCase):
     url = reverse('task-list')
@@ -322,7 +339,6 @@ class SubTasksTestCase(APITestCase):
             'title': 'First Subtask',
             'description': 'Do stuff here',
             'issue': 'SUBTASK',
-            'parent': self.task.id
         }
         resp = self.client.post(self.url, data, format='json')
         self.assertEqual(resp.status_code, 201)
@@ -348,12 +364,14 @@ class SubTasksTestCase(APITestCase):
                 'email': ''
             },
             'project': {
+                'id': self.project.id,
                 'code': 'NP',
                 'created_at': self.project.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
                 'title': 'New Project',
                 'url': f'{self.test_server}{reverse("project-detail", kwargs={"pk": self.project.id})}'
             },
-            'subtasks': []
+            'subtasks': [],
+            'parent': self.task.id
         })
 
     def test_subtask_list(self):
@@ -375,6 +393,7 @@ class SubTasksTestCase(APITestCase):
                 'issue': 'EPIC',
                 'modified_at': self.task.modified_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
                 'project': {
+                    'id': self.project.id,
                     'code': 'NP',
                     'created_at': self.project.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
                     'title': 'New Project',
@@ -389,8 +408,38 @@ class SubTasksTestCase(APITestCase):
                         'title': 'First Task',
                         'url': f"{self.test_server}{reverse('task-detail', kwargs={'code': subtask.code})}"
                     }],
-                'title': 'First Task'}
+                'title': 'First Task',
+                'parent': None
+            }
         ])
+
+    def test_subtask_to_epic(self):
+        """
+        Remove parent if subtask becomes epic
+        """
+        subtask = TaskFactory(
+            project=self.project, issue=Issue.SUBTASK,
+            created_by=self.creator, assigned_to=self.assignee,
+            parent=self.task, code='NP-100'
+        )
+        data = {
+            'project_id': subtask.project.id,
+            'assigned_to_id': subtask.assigned_to.id,
+            'title': subtask.title,
+            'description': subtask.description,
+            'issue': Issue.EPIC,
+            'parent_id': None
+        }
+
+        url = reverse('task-detail', kwargs={'code': subtask.code})
+        resp = self.client.put(url, data, format='json')
+        self.assertEqual(resp.status_code, 200)
+        subtask.refresh_from_db()
+        self.assertEqual(subtask.parent, None)
+
+
+
+
 
 
 class AdminFormTestCase(APITestCase):

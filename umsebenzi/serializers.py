@@ -24,7 +24,7 @@ class MinialProjectSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Project
-        fields = ('title', 'code', 'created_at', 'url')
+        fields = ('id', 'title', 'code', 'created_at', 'url')
 
 
 class ProjectSerializer(serializers.ModelSerializer):
@@ -65,7 +65,7 @@ class SubTaskSerializer(serializers.ModelSerializer):
 class TaskSerializer(serializers.ModelSerializer):
     project_id = serializers.PrimaryKeyRelatedField(write_only=True, queryset=Project.objects.all())
     assigned_to_id = serializers.PrimaryKeyRelatedField(write_only=True, queryset=User.objects.all())
-    parent_id = serializers.PrimaryKeyRelatedField(write_only=True, required=False, queryset=Task.objects.all())
+    parent_id = serializers.PrimaryKeyRelatedField(write_only=True, required=False, queryset=Task.objects.all(), allow_null=True)
     project = MinialProjectSerializer(read_only=True)
     assigned_to = UserSerializer(read_only=True)
     created_by = UserSerializer(read_only=True)
@@ -78,7 +78,7 @@ class TaskSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'project_id', 'project', 'title', 'description', 'assigned_to',
             'assigned_to_id', 'created_by', 'status', 'code', 'due_date',
-            'created_at', 'modified_at', 'parent_id', 'subtasks', 'issue'
+            'created_at', 'modified_at', 'parent_id', 'subtasks', 'issue', 'parent'
         )
         read_only_fields = ('code', 'created_at', 'modified_at')
 
@@ -92,10 +92,13 @@ class TaskSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         issue = attrs.get('issue')
         parent = attrs.get('parent_id')
-        if issue is Issue.EPIC and parent:
+        # breakpoint()
+        if issue == Issue.EPIC and parent:
             raise serializers.ValidationError('Epic task cannot have parent')
         if parent and parent.issue is Issue.SUBTASK and issue == Issue.SUBTASK:
             raise serializers.ValidationError('Subtask cannot have subtask parent')
+        if issue == Issue.SUBTASK and not parent:
+            raise serializers.ValidationError({'issue': 'Subtask needs a parent'})
         return attrs
 
     def create(self, validated_data):
@@ -119,5 +122,6 @@ class TaskSerializer(serializers.ModelSerializer):
         instance.title = validated_data.get('title', instance.title)
         instance.description = validated_data.get('description', instance.description)
         instance.status = validated_data.get('status', instance.status)
+        instance.issue = validated_data.get('issue', instance.status)
         instance.save()
         return instance

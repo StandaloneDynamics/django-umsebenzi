@@ -65,7 +65,8 @@ class SubTaskSerializer(serializers.ModelSerializer):
 class TaskSerializer(serializers.ModelSerializer):
     project_id = serializers.PrimaryKeyRelatedField(write_only=True, queryset=Project.objects.all())
     assigned_to_id = serializers.PrimaryKeyRelatedField(write_only=True, queryset=User.objects.all())
-    parent_id = serializers.PrimaryKeyRelatedField(write_only=True, required=False, queryset=Task.objects.all(), allow_null=True)
+    parent_id = serializers.PrimaryKeyRelatedField(write_only=True, required=False, queryset=Task.objects.all(),
+                                                   allow_null=True)
     project = MinialProjectSerializer(read_only=True)
     assigned_to = UserSerializer(read_only=True)
     created_by = UserSerializer(read_only=True)
@@ -131,3 +132,11 @@ class TaskSerializer(serializers.ModelSerializer):
         instance.issue = validated_data.get('issue', instance.status)
         instance.save()
         return instance
+
+
+class TaskStatusSerializer(serializers.ModelSerializer):
+    status = NamedEnumField(TaskStatus, required=True)
+
+    class Meta:
+        model = Task
+        fields = ('status',)

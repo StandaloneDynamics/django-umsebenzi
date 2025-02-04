@@ -220,6 +220,45 @@ class TaskTestCase(APITestCase):
             'parent': None
         })
 
+    def test_update_status(self):
+        task = Task.objects.create(
+            project=self.project,
+            created_by=self.creator,
+            assigned_to=self.assignee,
+            title='Hello World',
+            description='Complete task',
+            status=TaskStatus.DRAFT,
+            code="PR-1"
+        )
+
+        url = reverse('task-status', kwargs={'code': task.code})
+        data = {'status': 'IN_PROGRESS'}
+
+        self.client.force_login(self.creator)
+        resp = self.client.patch(url, data, format='json')
+        self.assertEqual(resp.status_code, 200)
+
+        task.refresh_from_db()
+        self.assertEqual(task.status, TaskStatus.IN_PROGRESS.value)
+
+    def test_patch_405(self):
+        task = Task.objects.create(
+            project=self.project,
+            created_by=self.creator,
+            assigned_to=self.assignee,
+            title='Hello World',
+            description='Complete task',
+            status=TaskStatus.DRAFT,
+            code="PR-1"
+        )
+
+        url = reverse('task-detail', kwargs={'code': task.code})
+        data = {'status': 'IN_PROGRESS'}
+
+        self.client.force_login(self.creator)
+        resp = self.client.patch(url, data, format='json')
+        self.assertEqual(resp.status_code, 405)
+
     def test_filter(self):
         Project.objects.create(
             title='Example Project',

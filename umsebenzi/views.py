@@ -14,6 +14,7 @@ from umsebenzi.enums import TaskStatus, Issue
 class ProjectViewSet(viewsets.ModelViewSet):
     serializer_class = ProjectSerializer
     permission_classes = [IsAuthenticated]
+    http_method_names = ['get', 'post', 'put', 'delete']
 
     def get_queryset(self):
         return Project.objects.filter(created_by=self.request.user)
@@ -53,6 +54,9 @@ class TaskViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save(created_by=request.user)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def partial_update(self, request, code=None):
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
     @action(detail=True, methods=['PATCH'], serializer_class=TaskStatusSerializer)
     def status(self, request, code=None):

@@ -1,5 +1,5 @@
 from factory.django import DjangoModelFactory
-from factory import SubFactory
+from factory import SubFactory, Sequence
 
 from django.contrib.auth.models import User
 from umsebenzi.models import Project, Task
@@ -7,6 +7,8 @@ from umsebenzi.enums import Issue, TaskStatus
 
 
 class UserFactory(DjangoModelFactory):
+    username = Sequence(lambda n: 'user%d' % n)
+
     class Meta:
         model = User
 

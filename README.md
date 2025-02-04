@@ -33,4 +33,4 @@ There are some examples below to see some of the data that can be created
 
 # OpenAPI Endpoints
 
-![screenshot of endpoints](api_endpoints.png)
+![screenshot of endpoints](umsebenzi_swagger.png)

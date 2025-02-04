@@ -190,7 +190,9 @@ class TaskTestCase(APITestCase):
         self.assertEqual(Task.objects.count(), 1)
         task = Task.objects.latest('id')
         self.assertEqual(resp.json(), {
+            'id': task.id,
             'project': {
+                'id': task.project.id,
                 'title': 'New Project',
                 'code': 'NP',
                 'created_at': self.project.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
@@ -214,7 +216,8 @@ class TaskTestCase(APITestCase):
                 'username': 'creator',
                 'email': ''
             },
-            'subtasks': []
+            'subtasks': [],
+            'parent': None
         })
 
     def test_update_status(self):
@@ -237,6 +240,24 @@ class TaskTestCase(APITestCase):
 
         task.refresh_from_db()
         self.assertEqual(task.status, TaskStatus.IN_PROGRESS.value)
+
+    def test_patch_405(self):
+        task = Task.objects.create(
+            project=self.project,
+            created_by=self.creator,
+            assigned_to=self.assignee,
+            title='Hello World',
+            description='Complete task',
+            status=TaskStatus.DRAFT,
+            code="PR-1"
+        )
+
+        url = reverse('task-detail', kwargs={'code': task.code})
+        data = {'status': 'IN_PROGRESS'}
+
+        self.client.force_login(self.creator)
+        resp = self.client.patch(url, data, format='json')
+        self.assertEqual(resp.status_code, 405)
 
     def test_filter(self):
         Project.objects.create(
@@ -291,6 +312,42 @@ class TaskTestCase(APITestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(len(resp.json()), 1)
 
+    def test_update_task_issue(self):
+        task = TaskFactory(project=self.project, created_by=self.creator, assigned_to=self.assignee)
+        self.assertEqual(task.issue, Issue.EPIC)
+        data = {
+            'project_id': task.project.id,
+            'assigned_to_id': task.assigned_to.id,
+            'title': task.title,
+            'description': task.description,
+            'issue': Issue.SUBTASK.name,
+        }
+        url = reverse('task-detail', kwargs={'code': task.code})
+        resp = self.client.put(url, data, format='json')
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(resp.json(), {'issue': ['Subtask needs a parent']})
+
+    def test_epic_to_subtask(self):
+        """
+        Block moving epic to subtask, if epic has subtasks
+        """
+        parent = TaskFactory(project=self.project, created_by=self.creator, code='NP-3')
+        epic_task = TaskFactory(project=self.project, created_by=self.creator)
+        TaskFactory(project=self.project, issue=Issue.SUBTASK, parent=epic_task, code='NP-2', created_by=self.creator)
+
+        data = {
+            'project_id': epic_task.project.id,
+            'assigned_to_id': epic_task.assigned_to.id,
+            'title': epic_task.title,
+            'description': epic_task.description,
+            'issue': Issue.SUBTASK.name,
+            'parent_id': parent.id
+        }
+        url = reverse('task-detail', kwargs={'code': epic_task.code})
+        resp = self.client.put(url, data, format='json')
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(resp.json(), {'issue': ['Subtask cannot have subtasks']})
+
 
 class SubTasksTestCase(APITestCase):
     url = reverse('task-list')
@@ -314,7 +371,7 @@ class SubTasksTestCase(APITestCase):
         }
         resp = self.client.post(self.url, data, format='json')
         self.assertEqual(resp.status_code, 400)
-        self.assertEqual(resp.json(), {'non_field_errors': ['Epic task cannot have parent']})
+        self.assertEqual(resp.json(), {'issue': ['Epic task cannot have parent']})
 
     def test_subtask_subtask(self):
         subtask = TaskFactory(
@@ -342,12 +399,12 @@ class SubTasksTestCase(APITestCase):
             'title': 'First Subtask',
             'description': 'Do stuff here',
             'issue': 'SUBTASK',
-            'parent': self.task.id
         }
         resp = self.client.post(self.url, data, format='json')
         self.assertEqual(resp.status_code, 201)
         task = Task.objects.latest('id')
         self.assertEqual(resp.json(), {
+            'id': task.id,
             'title': 'First Subtask',
             'description': 'Do stuff here',
             'due_date': None,
@@ -367,12 +424,14 @@ class SubTasksTestCase(APITestCase):
                 'email': ''
             },
             'project': {
+                'id': self.project.id,
                 'code': 'NP',
                 'created_at': self.project.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
                 'title': 'New Project',
                 'url': f'{self.test_server}{reverse("project-detail", kwargs={"pk": self.project.id})}'
             },
-            'subtasks': []
+            'subtasks': [],
+            'parent': self.task.id
         })
 
     def test_subtask_list(self):
@@ -384,6 +443,7 @@ class SubTasksTestCase(APITestCase):
         resp = self.client.get(self.url, format='json')
         self.assertEqual(resp.json(), [
             {
+                'id': self.task.id,
                 'assigned_to': {'email': '', 'id': 2, 'username': 'assignee'},
                 'code': 'NP-1',
                 'created_at': self.task.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
@@ -393,6 +453,7 @@ class SubTasksTestCase(APITestCase):
                 'issue': 'EPIC',
                 'modified_at': self.task.modified_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
                 'project': {
+                    'id': self.project.id,
                     'code': 'NP',
                     'created_at': self.project.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
                     'title': 'New Project',
@@ -407,9 +468,34 @@ class SubTasksTestCase(APITestCase):
                         'title': 'First Task',
                         'url': f"{self.test_server}{reverse('task-detail', kwargs={'code': subtask.code})}"
                     }],
-                'title': 'First Task'}
+                'title': 'First Task',
+                'parent': None
+            }
         ])
 
+    def test_subtask_to_epic(self):
+        """
+        Remove parent if subtask becomes epic
+        """
+        subtask = TaskFactory(
+            project=self.project, issue=Issue.SUBTASK,
+            created_by=self.creator, assigned_to=self.assignee,
+            parent=self.task, code='NP-100'
+        )
+        data = {
+            'project_id': subtask.project.id,
+            'assigned_to_id': subtask.assigned_to.id,
+            'title': subtask.title,
+            'description': subtask.description,
+            'issue': Issue.EPIC,
+            'parent_id': None
+        }
+
+        url = reverse('task-detail', kwargs={'code': subtask.code})
+        resp = self.client.put(url, data, format='json')
+        self.assertEqual(resp.status_code, 200)
+        subtask.refresh_from_db()
+        self.assertEqual(subtask.parent, None)
 
 
 class AdminFormTestCase(APITestCase):
@@ -477,5 +563,3 @@ class AdminFormTestCase(APITestCase):
         })
         self.assertFalse(form.is_valid())
         self.assertEqual(form.errors['__all__'], ["Subtask parent(epic) must belong to same project"])
-
-

@@ -8,4 +8,4 @@ class TaskFilter(filters.FilterSet):
 
     class Meta:
         model = Task
-        fields = ['project']
+        fields = ['project', 'status']

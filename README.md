@@ -27,6 +27,10 @@ Once the urls are connected you will be to view docs if you have the swagger too
 There are some examples below to see some of the data that can be created
 
 
+# CLI
+
+A Command line interface is also available as a separate [project](https://github.com/StandaloneDynamics/umsebenzi-cli)
+
 # Docs
 * [Project Api Example](docs/project.md)
 * [Tasks Api Example](docs/task.md)
